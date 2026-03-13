@@ -162,8 +162,10 @@
             <div id="hourlyStrip" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
                 @foreach (var (hour, index) in Model.Hourly.Select((h, i) => (h, i)))
                 {
-                    <div class="hour-card flex flex-col items-center p-4 rounded-3xl @(index == 0 ? "bg-pastel-blue" : "bg-pastel-grey")">
-                        <p class="font-bold mb-3 @(index == 0 ? "text-slate-700" : "text-slate-500")">@hour.Time</p>
+                    var cardBg   = index == 0 ? "bg-pastel-blue" : "bg-pastel-grey";
+                    var cardText = index == 0 ? "text-slate-700" : "text-slate-500";
+                    <div class="hour-card flex flex-col items-center p-4 rounded-3xl @cardBg">
+                        <p class="font-bold mb-3 @cardText">@hour.Time</p>
                         <span class="text-3xl mb-3">@hour.Icon</span>
                         <p class="font-bold text-xl mb-2 text-slate-700">@hour.Temp@Model.TempUnit</p>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-[0.18em]">Rain @hour.Precip%</p>
