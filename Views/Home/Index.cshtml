@@ -1,0 +1,393 @@
+@model WeatherCast.Models.WeatherData
+@{
+    ViewData["Title"] = "WeatherCast";
+    var city = Model.LocationName.Contains(',') ? Model.LocationName.Split(',')[0].Trim() : Model.LocationName;
+}
+
+<div class="max-w-7xl mx-auto">
+
+    <!-- Header / Search Bar -->
+    <div class="flex flex-col xl:flex-row gap-4 justify-between xl:items-center mb-8">
+        <div class="flex items-center gap-3 font-semibold text-slate-400">
+            <div class="w-14 h-7 bg-slate-300 rounded-full relative">
+                <div class="absolute left-1 top-1 w-5 h-5 bg-white rounded-full"></div>
+            </div>
+            WeatherCast Dashboard
+        </div>
+        <div class="relative w-full xl:w-[38rem]">
+            <input id="locationInput" type="text" value="@Model.LocationName"
+                   placeholder="Search for a city..."
+                   class="pill-search w-full py-3.5 px-6 outline-none focus:ring-2 focus:ring-blue-200 transition-all text-slate-700">
+        </div>
+        <div class="flex gap-3 w-full xl:w-auto">
+            <select id="unitSelect" class="pill-search px-5 py-3.5 outline-none text-slate-700 font-medium">
+                <option value="imperial">Imperial</option>
+                <option value="metric">Metric</option>
+            </select>
+            <button id="loadWeatherBtn" class="btn-green px-6 py-3 rounded-full font-bold shadow-sm hover:opacity-90 whitespace-nowrap">
+                Load Forecast
+            </button>
+            <button id="loadMockBtn" class="px-6 py-3 rounded-full font-bold shadow-sm bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 whitespace-nowrap">
+                Demo Data
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+
+        <!-- Location / Clock Card -->
+        <div class="xl:col-span-3 card p-8 flex flex-col justify-between bg-pastel-grey min-h-[280px]">
+            <div>
+                <p class="text-xs uppercase tracking-[0.22em] text-slate-400 font-bold">Location</p>
+                <h2 class="text-3xl font-extrabold mt-3 text-slate-700" id="cityName">@city</h2>
+                <p class="text-slate-400 font-medium mt-2" id="resolvedLocation">@Model.LocationName</p>
+            </div>
+            <div>
+                <h1 class="text-6xl md:text-7xl font-extrabold text-slate-700" id="currentTime">--:--</h1>
+                <p class="text-slate-500 mt-2 font-medium" id="currentDate"></p>
+                <p class="text-slate-400 text-sm mt-4" id="lastUpdated">Last updated: @Model.UpdatedAt</p>
+            </div>
+        </div>
+
+        <!-- Current Conditions Card -->
+        <div class="xl:col-span-6 card p-8 lg:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 bg-white min-h-[280px]">
+            <div>
+                <p class="text-xs uppercase tracking-[0.22em] text-slate-400 font-bold">Current Conditions</p>
+                <div class="flex items-end gap-3 mt-5">
+                    <span class="text-7xl md:text-8xl font-extrabold text-slate-700" id="mainTemp">
+                        @Model.Current.Temp@Model.TempUnit
+                    </span>
+                </div>
+                <p class="text-xl text-slate-400 font-medium mt-2">
+                    Feels like: <span class="text-slate-700" id="feelsLikeValue">@Model.Current.FeelsLike@Model.TempUnit</span>
+                </p>
+                <p class="text-2xl font-bold text-slate-700 mt-4 capitalize" id="mainCondition">@Model.Current.Condition</p>
+                <p class="text-slate-400 mt-2 leading-relaxed" id="mainSummary">@Model.Current.Summary</p>
+                <div class="mt-8 space-y-4">
+                    <div class="flex items-center gap-4">
+                        <span class="text-2xl">🔺</span>
+                        <div>
+                            <p class="text-xs uppercase font-bold text-slate-400">Daily High / Low</p>
+                            <p class="font-bold text-slate-700" id="todayHiLow">
+                                H @Model.Current.High@Model.TempUnit / L @Model.Current.Low@Model.TempUnit
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-2xl">🌬️</span>
+                        <div>
+                            <p class="text-xs uppercase font-bold text-slate-400">Wind</p>
+                            <p class="font-bold text-slate-700" id="windPill">@Model.Current.Wind @Model.SpeedUnit</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col justify-center">
+                <div class="text-8xl mb-2 text-center" id="conditionIcon">
+                    @GetConditionIcon(Model.Current.Condition)
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-6 w-full">
+                    <div class="metric-chip bg-pastel-blue text-center">
+                        <p class="text-2xl font-bold text-slate-700" id="humidityPill">@Model.Current.Humidity%</p>
+                        <p class="text-[10px] uppercase font-bold text-slate-400 tracking-[0.18em]">Humidity</p>
+                    </div>
+                    <div class="metric-chip bg-pastel-yellow text-center">
+                        <p class="text-2xl font-bold text-slate-700" id="uvValue">@Model.Current.UvIndex</p>
+                        <p class="text-[10px] uppercase font-bold text-slate-400 tracking-[0.18em]">UV Index</p>
+                        <p class="text-xs text-slate-500 mt-1" id="uvSub">@Model.Current.UvLabel</p>
+                    </div>
+                    <div class="metric-chip bg-pastel-grey text-center">
+                        <p class="text-2xl font-bold text-slate-700" id="precipValue">@Model.Current.PrecipProbability%</p>
+                        <p class="text-[10px] uppercase font-bold text-slate-400 tracking-[0.18em]">Precipitation</p>
+                    </div>
+                    <div class="metric-chip bg-pastel-blue text-center">
+                        <p class="text-2xl font-bold text-slate-700" id="rangeValue">
+                            @Model.Current.Low@Model.TempUnit / @Model.Current.High@Model.TempUnit
+                        </p>
+                        <p class="text-[10px] uppercase font-bold text-slate-400 tracking-[0.18em]">Low / High</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Source Status Card -->
+        <div class="xl:col-span-3 card p-8 bg-white min-h-[280px]">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-xl font-bold text-slate-700">Source Status</h3>
+                <span class="text-xs uppercase font-bold tracking-[0.18em] text-slate-400">APIs</span>
+            </div>
+            <div class="space-y-4">
+                <div class="source-row rounded-3xl bg-pastel-grey p-5">
+                    <p class="text-xs uppercase font-bold text-slate-400 tracking-[0.18em]">Google Weather</p>
+                    <p class="font-bold text-slate-700 mt-2" id="googleStatus">@Model.Sources.Google.Status</p>
+                    <p class="text-sm text-slate-400 mt-1">Daily and hourly source</p>
+                </div>
+                <div class="source-row rounded-3xl bg-pastel-blue p-5">
+                    <p class="text-xs uppercase font-bold text-slate-400 tracking-[0.18em]">OpenWeather</p>
+                    <p class="font-bold text-slate-700 mt-2" id="owmStatus">@Model.Sources.OpenWeather.Status</p>
+                    <p class="text-sm text-slate-400 mt-1">Current, UV, alerts source</p>
+                </div>
+                <div class="source-row rounded-3xl bg-pastel-yellow p-5">
+                    <p class="text-xs uppercase font-bold text-slate-400 tracking-[0.18em]">Forecast Scope</p>
+                    <p class="font-bold text-slate-700 mt-2">Specified location</p>
+                    <p class="text-sm text-slate-400 mt-1">Merged into one normalized model</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7-Day Forecast -->
+        <div class="xl:col-span-4 card p-8 bg-white">
+            <h3 class="text-xl font-bold mb-6 text-center text-slate-700">7 Day Forecast</h3>
+            <div id="weekGrid" class="space-y-4">
+                @foreach (var day in Model.Daily)
+                {
+                    <div class="day-row flex justify-between items-center rounded-3xl bg-pastel-grey px-5 py-4">
+                        <div class="flex items-center gap-4">
+                            <span class="text-2xl">@day.Icon</span>
+                            <div>
+                                <p class="font-bold text-slate-700">@day.Day</p>
+                                <p class="text-sm text-slate-400 capitalize">@day.Description</p>
+                            </div>
+                        </div>
+                        <span class="font-bold text-slate-700 text-lg">@day.High@Model.TempUnit</span>
+                        <span class="text-slate-400 font-medium">@day.Low@Model.TempUnit</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Hourly Forecast -->
+        <div class="xl:col-span-8 card p-8 bg-white overflow-hidden">
+            <h3 class="text-xl font-bold mb-8 text-center text-slate-700">Hourly Forecast</h3>
+            <div id="hourlyStrip" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
+                @foreach (var (hour, index) in Model.Hourly.Select((h, i) => (h, i)))
+                {
+                    <div class="hour-card flex flex-col items-center p-4 rounded-3xl @(index == 0 ? "bg-pastel-blue" : "bg-pastel-grey")">
+                        <p class="font-bold mb-3 @(index == 0 ? "text-slate-700" : "text-slate-500")">@hour.Time</p>
+                        <span class="text-3xl mb-3">@hour.Icon</span>
+                        <p class="font-bold text-xl mb-2 text-slate-700">@hour.Temp@Model.TempUnit</p>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-[0.18em]">Rain @hour.Precip%</p>
+                        <p class="text-xs font-semibold text-slate-500 mt-2">Wind @hour.Wind @Model.SpeedUnit</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Provider Comparison -->
+        <div class="xl:col-span-7 card p-8 bg-white">
+            <h3 class="text-xl font-bold mb-6 text-slate-700 text-center">Provider Comparison</h3>
+            <div id="compareGrid" class="space-y-4">
+                <div class="source-row rounded-3xl bg-pastel-grey p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <p class="text-xs uppercase font-bold text-slate-400 tracking-[0.18em]">Google Weather</p>
+                        <p class="font-bold text-slate-700 mt-2">@Capitalize(Model.Sources.Google.Condition)</p>
+                    </div>
+                    <div class="text-sm text-slate-500">
+                        Temp @Model.Sources.Google.Temp@Model.TempUnit |
+                        Feels @Model.Sources.Google.FeelsLike@Model.TempUnit |
+                        UV @Model.Sources.Google.UvIndex |
+                        Precip @Model.Sources.Google.PrecipProbability%
+                    </div>
+                </div>
+                <div class="source-row rounded-3xl bg-pastel-blue p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <p class="text-xs uppercase font-bold text-slate-400 tracking-[0.18em]">OpenWeather</p>
+                        <p class="font-bold text-slate-700 mt-2">@Capitalize(Model.Sources.OpenWeather.Condition)</p>
+                    </div>
+                    <div class="text-sm text-slate-500">
+                        Temp @Model.Sources.OpenWeather.Temp@Model.TempUnit |
+                        Feels @Model.Sources.OpenWeather.FeelsLike@Model.TempUnit |
+                        UV @Model.Sources.OpenWeather.UvIndex |
+                        Precip @Model.Sources.OpenWeather.PrecipProbability%
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Alerts -->
+        <div class="xl:col-span-5 card p-8 bg-white">
+            <h3 class="text-xl font-bold mb-6 text-slate-700 text-center">Active Alerts</h3>
+            <div id="alertList" class="space-y-4">
+                @if (Model.Alerts.Any())
+                {
+                    @foreach (var alert in Model.Alerts)
+                    {
+                        <div class="alert-card rounded-3xl bg-pastel-red p-5">
+                            <p class="text-xs uppercase font-bold text-red-300 tracking-[0.18em]">@alert.Severity</p>
+                            <p class="font-bold text-slate-700 mt-2">@alert.Title</p>
+                            <p class="text-sm text-slate-500 mt-2 leading-relaxed">@alert.Description</p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert-card rounded-3xl bg-pastel-grey p-5 text-slate-500">No active alerts</div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Clock
+    function startClock() {
+        const updateClock = () => {
+            const now = new Date();
+            document.getElementById('currentTime').textContent =
+                now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            document.getElementById('currentDate').textContent =
+                now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' });
+        };
+        updateClock();
+        setInterval(updateClock, 1000);
+    }
+    startClock();
+
+    // Load Forecast via C# API
+    document.getElementById('loadWeatherBtn').addEventListener('click', async () => {
+        const location = document.getElementById('locationInput').value.trim();
+        const units = document.getElementById('unitSelect').value;
+        if (!location) { alert('Enter a location first.'); return; }
+
+        document.getElementById('googleStatus').textContent = 'Loading...';
+        document.getElementById('owmStatus').textContent = 'Loading...';
+        document.getElementById('lastUpdated').textContent = 'Request in progress...';
+
+        try {
+            const resp = await fetch(`/api/weather/forecast?location=${encodeURIComponent(location)}&units=${units}`);
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.error || 'Request failed');
+            }
+            const data = await resp.json();
+            renderForecast(data);
+        } catch (e) {
+            console.error(e);
+            document.getElementById('googleStatus').textContent = 'Failed';
+            document.getElementById('owmStatus').textContent = 'Failed';
+            document.getElementById('lastUpdated').textContent = 'Request failed';
+            alert('Weather request failed: ' + e.message);
+        }
+    });
+
+    // Demo Data via C# API
+    document.getElementById('loadMockBtn').addEventListener('click', async () => {
+        const resp = await fetch('/api/weather/demo');
+        const data = await resp.json();
+        renderForecast(data);
+    });
+
+    function renderForecast(data) {
+        const t = data.tempUnit || '°F';
+        const s = data.speedUnit || 'mph';
+        const city = data.locationName.includes(',') ? data.locationName.split(',')[0].trim() : data.locationName;
+        const c = data.current;
+
+        document.getElementById('cityName').textContent = city;
+        document.getElementById('resolvedLocation').textContent = data.locationName;
+        document.getElementById('lastUpdated').textContent = 'Last updated: ' + data.updatedAt;
+        document.getElementById('mainTemp').textContent = c.temp + t;
+        document.getElementById('feelsLikeValue').textContent = c.feelsLike + t;
+        document.getElementById('mainCondition').textContent = c.condition;
+        document.getElementById('mainSummary').textContent = c.summary;
+        document.getElementById('todayHiLow').textContent = `H ${c.high}${t} / L ${c.low}${t}`;
+        document.getElementById('windPill').textContent = `${c.wind} ${s}`;
+        document.getElementById('humidityPill').textContent = c.humidity + '%';
+        document.getElementById('uvValue').textContent = c.uvIndex;
+        document.getElementById('uvSub').textContent = c.uvLabel;
+        document.getElementById('precipValue').textContent = c.precipProbability + '%';
+        document.getElementById('rangeValue').textContent = `${c.low}${t} / ${c.high}${t}`;
+        document.getElementById('conditionIcon').textContent = iconFromCondition(c.condition);
+        document.getElementById('googleStatus').textContent = data.sources.google.status;
+        document.getElementById('owmStatus').textContent = data.sources.openWeather.status;
+
+        document.getElementById('hourlyStrip').innerHTML = data.hourly.map((h, i) => `
+            <div class="hour-card flex flex-col items-center p-4 rounded-3xl ${i === 0 ? 'bg-pastel-blue' : 'bg-pastel-grey'}">
+                <p class="font-bold mb-3 ${i === 0 ? 'text-slate-700' : 'text-slate-500'}">${h.time}</p>
+                <span class="text-3xl mb-3">${h.icon}</span>
+                <p class="font-bold text-xl mb-2 text-slate-700">${h.temp}${t}</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-[0.18em]">Rain ${h.precip}%</p>
+                <p class="text-xs font-semibold text-slate-500 mt-2">Wind ${h.wind} ${s}</p>
+            </div>`).join('');
+
+        document.getElementById('weekGrid').innerHTML = data.daily.map(d => `
+            <div class="day-row flex justify-between items-center rounded-3xl bg-pastel-grey px-5 py-4">
+                <div class="flex items-center gap-4">
+                    <span class="text-2xl">${d.icon}</span>
+                    <div>
+                        <p class="font-bold text-slate-700">${d.day}</p>
+                        <p class="text-sm text-slate-400 capitalize">${d.description}</p>
+                    </div>
+                </div>
+                <span class="font-bold text-slate-700 text-lg">${d.high}${t}</span>
+                <span class="text-slate-400 font-medium">${d.low}${t}</span>
+            </div>`).join('');
+
+        const gs = data.sources.google;
+        const ow = data.sources.openWeather;
+        document.getElementById('compareGrid').innerHTML = `
+            <div class="source-row rounded-3xl bg-pastel-grey p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                    <p class="text-xs uppercase font-bold text-slate-400 tracking-[0.18em]">Google Weather</p>
+                    <p class="font-bold text-slate-700 mt-2">${capitalize(gs.condition)}</p>
+                </div>
+                <div class="text-sm text-slate-500">Temp ${gs.temp}${t} | Feels ${gs.feelsLike}${t} | UV ${gs.uvIndex} | Precip ${gs.precipProbability}%</div>
+            </div>
+            <div class="source-row rounded-3xl bg-pastel-blue p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                    <p class="text-xs uppercase font-bold text-slate-400 tracking-[0.18em]">OpenWeather</p>
+                    <p class="font-bold text-slate-700 mt-2">${capitalize(ow.condition)}</p>
+                </div>
+                <div class="text-sm text-slate-500">Temp ${ow.temp}${t} | Feels ${ow.feelsLike}${t} | UV ${ow.uvIndex} | Precip ${ow.precipProbability}%</div>
+            </div>`;
+
+        document.getElementById('alertList').innerHTML = data.alerts.length
+            ? data.alerts.map(a => `
+                <div class="alert-card rounded-3xl bg-pastel-red p-5">
+                    <p class="text-xs uppercase font-bold text-red-300 tracking-[0.18em]">${escHtml(a.severity)}</p>
+                    <p class="font-bold text-slate-700 mt-2">${escHtml(a.title)}</p>
+                    <p class="text-sm text-slate-500 mt-2 leading-relaxed">${escHtml(a.description)}</p>
+                </div>`).join('')
+            : '<div class="alert-card rounded-3xl bg-pastel-grey p-5 text-slate-500">No active alerts</div>';
+    }
+
+    function iconFromCondition(c = '') {
+        c = c.toLowerCase();
+        if (c.includes('thunder')) return '⛈️';
+        if (c.includes('snow')) return '❄️';
+        if (c.includes('rain') || c.includes('drizzle')) return '🌧️';
+        if (c.includes('cloud')) return '⛅';
+        if (c.includes('clear') || c.includes('sun')) return '☀️';
+        if (c.includes('mist') || c.includes('fog')) return '🌫️';
+        if (c.includes('wind')) return '🌬️';
+        return '🌤️';
+    }
+
+    function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                        .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+</script>
+
+@functions {
+    string GetConditionIcon(string condition)
+    {
+        var c = condition.ToLower();
+        if (c.Contains("thunder")) return "⛈️";
+        if (c.Contains("snow")) return "❄️";
+        if (c.Contains("rain") || c.Contains("drizzle")) return "🌧️";
+        if (c.Contains("cloud")) return "⛅";
+        if (c.Contains("clear") || c.Contains("sun")) return "☀️";
+        if (c.Contains("mist") || c.Contains("fog")) return "🌫️";
+        if (c.Contains("wind")) return "🌬️";
+        return "🌤️";
+    }
+
+    string Capitalize(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        return char.ToUpper(text[0]) + text[1..];
+    }
+}
